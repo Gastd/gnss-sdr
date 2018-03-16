@@ -36,6 +36,7 @@
 #include "GPS_L1_CA.h"
 #include "Galileo_E5a.h"
 #include "GLONASS_L1_CA.h"
+#include "BEIDOU_B1I.h"
 #include <glog/logging.h>
 
 
@@ -101,6 +102,10 @@ SignalGenerator::SignalGenerator(ConfigurationInterface* configuration,
     else if (std::find(system.begin(), system.end(), "R") != system.end())
         {
             vector_length = round((float)fs_in / (GLONASS_L1_CA_CODE_RATE_HZ / GLONASS_L1_CA_CODE_LENGTH_CHIPS));
+        }
+    else if (std::find(system.begin(), system.end(), "C") != system.end())
+        {
+            vector_length = round((float)fs_in / (BEIDOU_B1I_CODE_RATE_HZ / BEIDOU_B1I_CODE_LENGTH_CHIPS));
         }
 
     if (item_type_.compare("gr_complex") == 0)
