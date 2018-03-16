@@ -93,7 +93,7 @@ const double  BEIDOU_WORD_SECONDS   = 0.6;              // WORD duration        
 // Fields for SUBFRAME N (Common for all of them)
 // WORD 1    ( 1 - 30 bits) [26 info + 4 parity]
 // WORD 2-10 (31 - 60 bits) [22 info + 8 parity]
-const std::vector<std::pair<int,int>> P             ({{27 ,4},
+const std::vector<std::pair<int,int>> Pfirst        ({{27 ,4},    // P
                                                       {53 ,8},
                                                       {83 ,8},
                                                       {113,8},
@@ -334,4 +334,4 @@ const std::vector<std::pair<int,int>> PRGREE         ({{252,11},
 //const std::vector<std::pair<int,int>> HEALTH_SV23({{253,6}});
 //const std::vector<std::pair<int,int>> HEALTH_SV24({{259,6}});
 
-#endif /* GNSS_SDR_GPS_L1_CA_H_ */
+#endif /* GNSS_SDR_BEIDOU_B1I_H_ */

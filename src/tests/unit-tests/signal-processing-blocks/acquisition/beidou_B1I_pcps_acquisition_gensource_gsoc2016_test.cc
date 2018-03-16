@@ -30,11 +30,8 @@
  * -------------------------------------------------------------------------
  */
 
-#include <ctime>
-#include <cstdlib>
-#include <iostream>
-#include <boost/chrono.hpp>
-//#include <boost/make_shared.hpp>
+
+#include <chrono>
 #include <gnuradio/top_block.h>
 #include <gnuradio/blocks/file_source.h>
 #include <gnuradio/analog/sig_source_waveform.h>
@@ -42,96 +39,100 @@
 #include <gnuradio/msg_queue.h>
 #include <gnuradio/blocks/null_sink.h>
 #include <gtest/gtest.h>
-#include "gnss_block_factory.h"
 #include "gnss_block_interface.h"
 #include "in_memory_configuration.h"
-#include "gnss_sdr_valve.h"
+#include "configuration_interface.h"
 #include "gnss_synchro.h"
-#include "beidou_b1i_pcps_acquisition.h"
 #include "BEIDOU_B1I.h"
-
+#include "beidou_b1i_pcps_acquisition.h"
 #include "signal_generator.h"
 #include "signal_generator_c.h"
 #include "fir_filter.h"
-#include "gen_signal_source.h" 
+#include "gen_signal_source.h"
+#include "gnss_sdr_valve.h"
+#include "boost/shared_ptr.hpp"
+#include "pass_through.h"
 
 
-// ######## GNURADIO BLOCK MESSAGE RECEIVER #########
-class BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx;
+// ######## GNURADIO BLOCK MESSAGE RECEVER #########
+class BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx;
 
-typedef boost::shared_ptr<BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx> BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx_sptr;
+typedef boost::shared_ptr<BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx> BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx_sptr;
 
-BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx_sptr BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx_make(concurrent_queue<int>& queue);
+BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx_sptr BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx_make(concurrent_queue<int>& queue);
 
-class BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx : public gr::block
+
+class BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx : public gr::block
 {
 private:
-    friend BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx_sptr BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx_make(concurrent_queue<int>& queue);
+    friend BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx_sptr BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx_make(concurrent_queue<int>& queue);
     void msg_handler_events(pmt::pmt_t msg);
-    BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx(concurrent_queue<int>& queue);
+    BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx(concurrent_queue<int>& queue);
     concurrent_queue<int>& channel_internal_queue;
+
 public:
     int rx_message;
-    ~BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx(); //!< Default destructor
+    ~BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx();  //!< Default destructor
 };
 
 
-BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx_sptr BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx_make(concurrent_queue<int>& queue)
+BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx_sptr BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx_make(concurrent_queue<int>& queue)
 {
-    return BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx_sptr(new BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx(queue));
+    return BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx_sptr(new BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx(queue));
 }
 
 
-void BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx::msg_handler_events(pmt::pmt_t msg)
+void BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx::msg_handler_events(pmt::pmt_t msg)
 {
     try
-    {
+        {
             long int message = pmt::to_long(msg);
             rx_message = message;
             channel_internal_queue.push(rx_message);
-    }
-    catch(boost::bad_any_cast& e)
-    {
+        }
+    catch (boost::bad_any_cast& e)
+        {
             LOG(WARNING) << "msg_handler_telemetry Bad any cast!";
             rx_message = 0;
-    }
+        }
 }
 
 
-BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx::BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx(concurrent_queue<int>& queue) :
-    gr::block("BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx",
-              gr::io_signature::make(0, 0, 0),
-              gr::io_signature::make(0, 0, 0)),
-    channel_internal_queue(queue)
+BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx::BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx(concurrent_queue<int>& queue) : gr::block("BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx", gr::io_signature::make(0, 0, 0), gr::io_signature::make(0, 0, 0)), channel_internal_queue(queue)
 {
     this->message_port_register_in(pmt::mp("events"));
-    this->set_msg_handler(pmt::mp("events"), boost::bind(&BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx::msg_handler_events, this, _1));
+    this->set_msg_handler(pmt::mp("events"), boost::bind(&BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx::msg_handler_events, this, _1));
     rx_message = 0;
 }
 
 
-BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx::~BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx()
-{}
+BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx::~BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx()
+{
+}
 
 
 // ###########################################################
 
-class BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest: public ::testing::Test
+class BeidouB1iPcpsAcquisitionGSoC2016Test : public ::testing::Test
 {
 protected:
-    BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest()
+    BeidouB1iPcpsAcquisitionGSoC2016Test()
     {
         item_size = sizeof(gr_complex);
         stop = false;
         message = 0;
         gnss_synchro = Gnss_Synchro();
+        acquisition = 0;
+        init();
     }
 
-    ~BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest()
-    {}
+    ~BeidouB1iPcpsAcquisitionGSoC2016Test()
+    {
+    }
 
     void init();
-    void config_gensource();
+    void config_1();
+    void config_2();
     void start_queue();
     void wait_message();
     void process_message();
@@ -141,46 +142,39 @@ protected:
 
     gr::msg_queue::sptr queue;
     gr::top_block_sptr top_block;
-
-    std::shared_ptr<BeidouB1iPcpsAcquisition> acquisition;
+    BeidouB1iPcpsAcquisition* acquisition;
     std::shared_ptr<InMemoryConfiguration> config;
-
     Gnss_Synchro gnss_synchro;
-
     size_t item_size;
     bool stop;
     int message;
     boost::thread ch_thread;
 
-    unsigned int intg_time_ms = 0;
+    unsigned int integration_time_ms = 0;
     unsigned int fs_in = 0;
 
-    double expected_doppler_hz = 0.0;
     double expected_delay_chips = 0.0;
-    double expected_delay_samples = 0.0;
-    double expected_delay_sec = 0.0;
-    double ts_in = 0.0;
-
+    double expected_doppler_hz = 0.0;
     float max_doppler_error_hz = 0.0;
     float max_delay_error_chips = 0.0;
 
     unsigned int num_of_realizations = 0;
-    unsigned int realization_counter = 0;
-    unsigned int detection_counter = 0;
-    unsigned int correct_estimation_counter = 0;
-    unsigned int acquired_samples = 0;
-    unsigned int mean_acq_time_us = 0;
+    unsigned int realization_counter;
+    unsigned int detection_counter;
+    unsigned int correct_estimation_counter;
+    unsigned int acquired_samples;
+    unsigned int mean_acq_time_us;
 
-    double mse_doppler = 0.0;
-    double mse_delay = 0.0;
+    double mse_doppler;
+    double mse_delay;
 
-    double Pd = 0.0;
-    double Pfa_p = 0.0;
-    double Pfa_a = 0.0;
+    double Pd;
+    double Pfa_p;
+    double Pfa_a;
 };
 
 
-void BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest::init()
+void BeidouB1iPcpsAcquisitionGSoC2016Test::init()
 {
     message = 0;
     realization_counter = 0;
@@ -195,44 +189,45 @@ void BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest::init()
     Pfa_a = 0;
 }
 
-void BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest::config_gensource()
+
+void BeidouB1iPcpsAcquisitionGSoC2016Test::config_1()
 {
     gnss_synchro.Channel_ID = 0;
-    gnss_synchro.System = 'C';                                                         // "BeiDou" = "C"                               see gnss_satellite.h
-    std::string signal = "1C";                                                         // "1C" is for GPS L1 C/A (have to be changed)  see gnss_signal.h
+    gnss_synchro.System = 'C';
+    std::string signal = "1I";
     signal.copy(gnss_synchro.Signal, 2, 0);
 
-/******** CONFIGURATION PARAMETERS ********/
+    integration_time_ms = 1;
+    fs_in = 4e6;
 
-    gnss_synchro.PRN = 20;          // [1:37]
-    intg_time_ms = 100;             // Tested with a period of integration > 1 ms
-    fs_in = 16.000e6;               // set 16.000 MHz
-    ts_in = (1/static_cast<double>(fs_in));
+    expected_delay_chips = 600;
+    // expected_delay_chips   = static_cast<float>(expected_delay_samples * BEIDOU_B1I_CODE_RATE_HZ / static_cast<float>(fs_in));
+    expected_doppler_hz =  1650;
+    max_doppler_error_hz = 2 / (3 * integration_time_ms * 1e-3);
+    max_delay_error_chips = 0.50;
 
-    expected_delay_samples = 3767.0;                                    // [samples]
-    expected_delay_sec     = ts_in * expected_delay_samples * 1e3;      // [sec]
-    expected_doppler_hz    = 1650.0;                                    // [Hz]
-    expected_delay_chips   = static_cast<float>(expected_delay_samples * BEIDOU_B1I_CODE_RATE_HZ / static_cast<float>(fs_in));
+
     num_of_realizations = 1;
-
-/******************************************/
 
     config = std::make_shared<InMemoryConfiguration>();
 
-    config->set_property("GNSS-SDR.internal_fs_hz", std::to_string(fs_in));
+    config->set_property("GNSS-SDR.internal_fs_sps", std::to_string(fs_in));
 
     config->set_property("SignalSource.fs_hz", std::to_string(fs_in));
+
     config->set_property("SignalSource.item_type", "gr_complex");
+
     config->set_property("SignalSource.num_satellites", "1");
+
     config->set_property("SignalSource.system_0", "C");
-    config->set_property("SignalSource.PRN_0", std::to_string(gnss_synchro.PRN));
+    config->set_property("SignalSource.PRN_0", "20");
+    config->set_property("SignalSource.CN0_dB_0", "44");
     config->set_property("SignalSource.doppler_Hz_0", std::to_string(expected_doppler_hz));
     config->set_property("SignalSource.delay_chips_0", std::to_string(expected_delay_chips));
+
     config->set_property("SignalSource.noise_flag", "false");
     config->set_property("SignalSource.data_flag", "false");
     config->set_property("SignalSource.BW_BB", "0.97");
-    config->set_property("SignalSource.dump", "true");
-    config->set_property("SignalSource.dump_filename", "../src/tests/signal_samples/signal_source_beidou_100ms.dat");
 
     config->set_property("InputFilter.implementation", "Fir_Filter");
     config->set_property("InputFilter.input_item_type", "gr_complex");
@@ -254,25 +249,116 @@ void BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest::config_gensource()
     config->set_property("InputFilter.grid_density", "16");
 
     config->set_property("Acquisition.item_type", "gr_complex");
-    config->set_property("Acquisition.if", "0.0");
-    config->set_property("Acquisition.coherent_integration_time_ms", std::to_string(intg_time_ms));
-    config->set_property("Acquisition.implementation", "BeiDou_B1I_PCPS_Acquisition");
-    config->set_property("Acquisition.threshold", "0.001");
-    config->set_property("Acquisition.doppler_max", "5000");
+    config->set_property("Acquisition.if", "0");
+    config->set_property("Acquisition.coherent_integration_time_ms", std::to_string(integration_time_ms));
+    config->set_property("Acquisition.max_dwells", "1");
+    config->set_property("Acquisition.implementation", "BEIDOU_B1I_PCPS_Acquisition");
+    config->set_property("Acquisition.threshold", "0.8");
+    config->set_property("Acquisition.doppler_max", "10000");
     config->set_property("Acquisition.doppler_step", "250");
-    config->set_property("Acquisition.repeat_satellite", "false");
+    config->set_property("Acquisition.bit_transition_flag", "false");
     config->set_property("Acquisition.dump", "true");
-    config->set_property("Acquisition.dump_filename", "../src/tests/data/acquisition_beidou/acquisition_beidou.dat");
-    config->set_property("Acquisition.pfa", "0.0");
+    config->set_property("Acquisition.dump_filename", "./acquisition");
 }
 
-void BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest::start_queue()
+
+void BeidouB1iPcpsAcquisitionGSoC2016Test::config_2()
+{
+    gnss_synchro.Channel_ID = 0;
+    gnss_synchro.System = 'C';
+    std::string signal = "1I";
+    signal.copy(gnss_synchro.Signal, 2, 0);
+
+    integration_time_ms = 1;
+    fs_in = 4e6;
+
+    expected_delay_chips = 374;
+    expected_doppler_hz = -2000;
+    max_doppler_error_hz = 2 / (3 * integration_time_ms * 1e-3);
+    max_delay_error_chips = 0.50;
+
+    num_of_realizations = 100;
+
+    config = std::make_shared<InMemoryConfiguration>();
+
+    config->set_property("GNSS-SDR.internal_fs_sps", std::to_string(fs_in));
+
+    config->set_property("SignalSource.fs_hz", std::to_string(fs_in));
+
+    config->set_property("SignalSource.item_type", "gr_complex");
+
+    config->set_property("SignalSource.num_satellites", "4");
+
+    config->set_property("SignalSource.system_0", "C");
+    config->set_property("SignalSource.PRN_0", "10");
+    config->set_property("SignalSource.CN0_dB_0", "44");
+    config->set_property("SignalSource.doppler_Hz_0", std::to_string(expected_doppler_hz));
+    config->set_property("SignalSource.delay_chips_0", std::to_string(expected_delay_chips));
+
+    config->set_property("SignalSource.system_1", "C");
+    config->set_property("SignalSource.PRN_1", "15");
+    config->set_property("SignalSource.CN0_dB_1", "44");
+    config->set_property("SignalSource.doppler_Hz_1", "1000");
+    config->set_property("SignalSource.delay_chips_1", "100");
+
+    config->set_property("SignalSource.system_2", "C");
+    config->set_property("SignalSource.PRN_2", "21");
+    config->set_property("SignalSource.CN0_dB_2", "44");
+    config->set_property("SignalSource.doppler_Hz_2", "2000");
+    config->set_property("SignalSource.delay_chips_2", "200");
+
+    config->set_property("SignalSource.system_3", "C");
+    config->set_property("SignalSource.PRN_3", "22");
+    config->set_property("SignalSource.CN0_dB_3", "44");
+    config->set_property("SignalSource.doppler_Hz_3", "3000");
+    config->set_property("SignalSource.delay_chips_3", "300");
+
+    config->set_property("SignalSource.noise_flag", "true");
+    config->set_property("SignalSource.data_flag", "true");
+    config->set_property("SignalSource.BW_BB", "0.97");
+
+    config->set_property("InputFilter.implementation", "Fir_Filter");
+    config->set_property("InputFilter.input_item_type", "gr_complex");
+    config->set_property("InputFilter.output_item_type", "gr_complex");
+    config->set_property("InputFilter.taps_item_type", "float");
+    config->set_property("InputFilter.number_of_taps", "11");
+    config->set_property("InputFilter.number_of_bands", "2");
+    config->set_property("InputFilter.band1_begin", "0.0");
+    config->set_property("InputFilter.band1_end", "0.97");
+    config->set_property("InputFilter.band2_begin", "0.98");
+    config->set_property("InputFilter.band2_end", "1.0");
+    config->set_property("InputFilter.ampl1_begin", "1.0");
+    config->set_property("InputFilter.ampl1_end", "1.0");
+    config->set_property("InputFilter.ampl2_begin", "0.0");
+    config->set_property("InputFilter.ampl2_end", "0.0");
+    config->set_property("InputFilter.band1_error", "1.0");
+    config->set_property("InputFilter.band2_error", "1.0");
+    config->set_property("InputFilter.filter_type", "bandpass");
+    config->set_property("InputFilter.grid_density", "16");
+
+    config->set_property("Acquisition.item_type", "gr_complex");
+    config->set_property("Acquisition.if", "0");
+    config->set_property("Acquisition.coherent_integration_time_ms",
+        std::to_string(integration_time_ms));
+    config->set_property("Acquisition.max_dwells", "1");
+    config->set_property("Acquisition.implementation", "BEIDOU_B1I_PCPS_Acquisition");
+    config->set_property("Acquisition.pfa", "0.1");
+    config->set_property("Acquisition.doppler_max", "10000");
+    config->set_property("Acquisition.doppler_step", "250");
+    config->set_property("Acquisition.bit_transition_flag", "false");
+    config->set_property("Acquisition.dump", "true");
+    config->set_property("Acquisition.dump_filename", "./acquisition");
+}
+
+
+void BeidouB1iPcpsAcquisitionGSoC2016Test::start_queue()
 {
     stop = false;
-    ch_thread = boost::thread(&BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest::wait_message, this);
+    ch_thread = boost::thread(&BeidouB1iPcpsAcquisitionGSoC2016Test::wait_message, this);
 }
 
-void BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest::wait_message()
+
+void BeidouB1iPcpsAcquisitionGSoC2016Test::wait_message()
 {
     struct timeval tv;
     long long int begin = 0;
@@ -283,12 +369,12 @@ void BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest::wait_message()
             acquisition->reset();
 
             gettimeofday(&tv, NULL);
-            begin = tv.tv_sec *1e6 + tv.tv_usec;
+            begin = tv.tv_sec * 1e6 + tv.tv_usec;
 
             channel_internal_queue.wait_and_pop(message);
 
             gettimeofday(&tv, NULL);
-            end = tv.tv_sec*1e6 + tv.tv_usec;
+            end = tv.tv_sec * 1e6 + tv.tv_usec;
 
             mean_acq_time_us += (end - begin);
 
@@ -296,14 +382,18 @@ void BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest::wait_message()
         }
 }
 
-void BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest::process_message()
+
+void BeidouB1iPcpsAcquisitionGSoC2016Test::process_message()
 {
     if (message == 1)
         {
             detection_counter++;
 
             // The term -5 is here to correct the additional delay introduced by the FIR filter
-            double delay_error_chips = std::abs((double)expected_delay_chips - (double)(gnss_synchro.Acq_delay_samples-5)*1023.0/((double)fs_in*1e-3));
+            // The value 2046.0 must be a variable, chips/length
+            double delay_error_chips = std::abs(static_cast<double>(expected_delay_chips) - (static_cast<double>(gnss_synchro.Acq_delay_samples) - 5.0) *
+                                                                                             2046.0 /
+                                                                                             (static_cast<double>(fs_in) * 1e-3));
             double doppler_error_hz = std::abs(expected_doppler_hz - gnss_synchro.Acq_doppler_hz);
 
             mse_delay += std::pow(delay_error_chips, 2);
@@ -317,159 +407,271 @@ void BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest::process_message()
 
     realization_counter++;
 
-    std::cout << "Progress: " << round((float)realization_counter/num_of_realizations*100) << "% \r" << std::flush;
+    std::cout << "Progress: " << round(static_cast<float>(realization_counter) / static_cast<float>(num_of_realizations) * 100.0) << "% \r" << std::flush;
 
     if (realization_counter == num_of_realizations)
         {
             mse_delay /= num_of_realizations;
             mse_doppler /= num_of_realizations;
 
-            Pd = (double)correct_estimation_counter / (double)num_of_realizations;
-            Pfa_a = (double)detection_counter / (double)num_of_realizations;
-            Pfa_p = (double)(detection_counter-correct_estimation_counter) / (double)num_of_realizations;
+            Pd = static_cast<double>(correct_estimation_counter) / static_cast<double>(num_of_realizations);
+            Pfa_a = static_cast<double>(detection_counter) / static_cast<double>(num_of_realizations);
+            Pfa_p = (static_cast<double>(detection_counter) - static_cast<double>(correct_estimation_counter)) / static_cast<double>(num_of_realizations);
 
             mean_acq_time_us /= num_of_realizations;
 
             stop_queue();
             top_block->stop();
-
-            std::cout << std::endl;
         }
 }
 
-void BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest::stop_queue()
+
+void BeidouB1iPcpsAcquisitionGSoC2016Test::stop_queue()
 {
     stop = true;
 }
 
 
-TEST_F(BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest, Instantiate)
+TEST_F(BeidouB1iPcpsAcquisitionGSoC2016Test, Instantiate)
 {
-    config_gensource();
-    acquisition = std::make_shared<BeidouB1iPcpsAcquisition>(config.get(), "Acquisition", 1, 1);
+    config_1();
+    acquisition = new BeidouB1iPcpsAcquisition(config.get(), "Acquisition", 1, 1);
+    delete acquisition;
 }
 
-TEST_F(BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest, ConnectAndRun)
+
+TEST_F(BeidouB1iPcpsAcquisitionGSoC2016Test, ConnectAndRun)
 {
-    int nsamples = floor(fs_in * intg_time_ms*1e-3);
-    // int nsamples =      16000;
-
-    struct timeval tv;
-    long long int begin = 0;
-    long long int end = 0;
-    top_block = gr::make_top_block("Acquisition test");
+    int nsamples = floor(fs_in * integration_time_ms * 1e-3);
+    std::chrono::time_point<std::chrono::system_clock> begin, end;
+    std::chrono::duration<double> elapsed_seconds(0);
     queue = gr::msg_queue::make(0);
+    top_block = gr::make_top_block("Acquisition test");
 
-    config_gensource();
-    acquisition = std::make_shared<BeidouB1iPcpsAcquisition>(config.get(), "Acquisition", 1, 1);
-    boost::shared_ptr<BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx> msg_rx = BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx_make(channel_internal_queue);
+    config_1();
+    acquisition = new BeidouB1iPcpsAcquisition(config.get(), "Acquisition", 1, 1);
+    boost::shared_ptr<BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx> msg_rx = BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx_make(channel_internal_queue);
 
-    ASSERT_NO_THROW( {
+    ASSERT_NO_THROW({
         acquisition->connect(top_block);
         boost::shared_ptr<gr::analog::sig_source_c> source = gr::analog::sig_source_c::make(fs_in, gr::analog::GR_SIN_WAVE, 1000, 1, gr_complex(0));
         boost::shared_ptr<gr::block> valve = gnss_sdr_make_valve(sizeof(gr_complex), nsamples, queue);
         top_block->connect(source, 0, valve, 0);
         top_block->connect(valve, 0, acquisition->get_left_block(), 0);
         top_block->msg_connect(acquisition->get_right_block(), pmt::mp("events"), msg_rx, pmt::mp("events"));
-    }) << "Failure connecting the blocks of acquisition test." << std::endl;
+    }) << "Failure connecting the blocks of acquisition test.";
 
-    EXPECT_NO_THROW( {
-        gettimeofday(&tv, NULL);
-        begin = tv.tv_sec * 1000000 + tv.tv_usec;
-        top_block->run(); // Start threads and wait
-        gettimeofday(&tv, NULL);
-        end = tv.tv_sec * 1000000 + tv.tv_usec;
-    }) << "Failure running the top_block." << std::endl;
+    EXPECT_NO_THROW({
+        begin = std::chrono::system_clock::now();
+        top_block->run();  // Start threads and wait
+        end = std::chrono::system_clock::now();
+        elapsed_seconds = end - begin;
+    }) << "Failure running the top_block.";
 
-    std::cout <<  "Processed " << nsamples << " samples in " << (end - begin) << " microseconds" << std::endl;
+    std::cout << "Processed " << nsamples << " samples in " << elapsed_seconds.count() * 1e6 << " microseconds" << std::endl;
+
+    delete acquisition;
 }
 
-TEST_F(BeiDouB1iPcpsAcquisitionGSoC2016GenSourceTest, ValidationOfResults)
+
+TEST_F(BeidouB1iPcpsAcquisitionGSoC2016Test, ValidationOfResults)
 {
-    struct timeval tv;
-    long long int begin = 0;
-    long long int end   = 0;
-
-    config_gensource();
-    top_block = gr::make_top_block("Acquisition test");
+    config_1();
     queue = gr::msg_queue::make(0);
+    top_block = gr::make_top_block("Acquisition test");
 
-    acquisition = std::make_shared<BeidouB1iPcpsAcquisition>(config.get(), "Acquisition", 1, 1);
-    boost::shared_ptr<BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx> msg_rx = BeidouB1iPcpsAcquisitionGenSourceTest_msg_rx_make(channel_internal_queue);
+    acquisition = new BeidouB1iPcpsAcquisition(config.get(), "Acquisition", 1, 1);
+    boost::shared_ptr<BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx> msg_rx = BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx_make(channel_internal_queue);
 
-    ASSERT_NO_THROW( {
+    ASSERT_NO_THROW({
         acquisition->set_channel(1);
-    }) << "Failure setting channel." << std::endl;
+    }) << "Failure setting channel.";
 
-    ASSERT_NO_THROW( {
+    ASSERT_NO_THROW({
         acquisition->set_gnss_synchro(&gnss_synchro);
-    }) << "Failure setting gnss_synchro." << std::endl;
+    }) << "Failure setting gnss_synchro.";
 
-    ASSERT_NO_THROW( {
-        acquisition->set_doppler_max(config->property("Acquisition.doppler_max", 10000));
-    }) << "Failure setting doppler_max." << std::endl;
+    ASSERT_NO_THROW({
+        acquisition->set_doppler_max(10000);
+    }) << "Failure setting doppler_max.";
 
-    ASSERT_NO_THROW( {
-        acquisition->set_doppler_step(config->property("Acquisition.doppler_step", 250));
-    }) << "Failure setting doppler_step." << std::endl;
+    ASSERT_NO_THROW({
+        acquisition->set_doppler_step(500);
+    }) << "Failure setting doppler_step.";
 
-    ASSERT_NO_THROW( {
-        acquisition->set_threshold(config->property("Acquisition.threshold", 0.001));
-    }) << "Failure setting threshold." << std::endl;
+    ASSERT_NO_THROW({
+        acquisition->set_threshold(0.5);
+    }) << "Failure setting threshold.";
 
-    ASSERT_NO_THROW( {
+    ASSERT_NO_THROW({
         acquisition->connect(top_block);
-    }) << "Failure connecting acquisition to the top_block." << std::endl;
+        top_block->msg_connect(acquisition->get_right_block(), pmt::mp("events"), msg_rx, pmt::mp("events"));
+    }) << "Failure connecting acquisition to the top_block.";
 
-    // USING SIGNAL GENERATOR
-    ASSERT_NO_THROW( {
+    acquisition->init();
+
+    ASSERT_NO_THROW({
         boost::shared_ptr<GenSignalSource> signal_source;
         SignalGenerator* signal_generator = new SignalGenerator(config.get(), "SignalSource", 0, 1, queue);
-
         FirFilter* filter = new FirFilter(config.get(), "InputFilter", 1, 1);
-        filter->connect(top_block);
-        
         signal_source.reset(new GenSignalSource(signal_generator, filter, "SignalSource", queue));
         signal_source->connect(top_block);
-        
         top_block->connect(signal_source->get_right_block(), 0, acquisition->get_left_block(), 0);
-        top_block->msg_connect(acquisition->get_right_block(), pmt::mp("events"), msg_rx, pmt::mp("events"));
-    }) << "Failure connecting the blocks of acquisition test." << std::endl;
+    }) << "Failure connecting the blocks of acquisition test.";
 
-    init();
-    acquisition->set_state(1);
-    acquisition->init();
-    
-    start_queue();
+    // i = 0 --> satellite in acquisition is visible
+    // i = 1 --> satellite in acquisition is not visible
+    for (unsigned int i = 0; i < 2; i++)
+        {
+            init();
 
-    EXPECT_NO_THROW( {
-        gettimeofday(&tv, NULL);
-        begin = tv.tv_sec * 1000000 + tv.tv_usec;
-        top_block->run(); // Start threads and wait
-        gettimeofday(&tv, NULL);
-        end = tv.tv_sec * 1000000 + tv.tv_usec;
-    }) << "Failure running the top_block." << std::endl;
+            if (i == 0)
+                {
+                    gnss_synchro.PRN = 20;  // This satellite is visible
+                }
+            else if (i == 1)
+                {
+                    gnss_synchro.PRN = 10;  // This satellite is not visible
+                }
 
-    stop_queue();
-    ch_thread.join(); 
+            acquisition->set_local_code();
+            acquisition->set_state(1);  // Ensure that acquisition starts at the first sample
+            start_queue();
 
-    unsigned long int nsamples = gnss_synchro.Acq_samplestamp_samples;
-    std::cout <<  "\nAcquired " << nsamples << " samples in " << (end - begin) << " microseconds" << std::endl;
+            EXPECT_NO_THROW({
+                top_block->run();  // Start threads and wait
+            }) << "Failure running the top_block.";
 
-    ASSERT_EQ(1, msg_rx->rx_message) << "Acquisition failure. Expected message: 1=ACQ SUCCESS.";
+            if (i == 0)
+                {
+                    EXPECT_EQ(1, message) << "Acquisition failure. Expected message: 1=ACQ SUCCESS.";
+                    if (message == 1)
+                        {
+                            EXPECT_EQ(1, correct_estimation_counter) << "Acquisition failure. Incorrect parameters estimation.";
+                        }
+                }
+            else if (i == 1)
+                {
+                    EXPECT_EQ(2, message) << "Acquisition failure. Expected message: 2=ACQ FAIL.";
+                }
+#ifdef OLD_BOOST
+            ASSERT_NO_THROW({
+                ch_thread.timed_join(boost::posix_time::seconds(1));
+            }) << "Failure while waiting the queue to stop.";
+#endif
+#ifndef OLD_BOOST
+            ASSERT_NO_THROW({
+                ch_thread.try_join_until(boost::chrono::steady_clock::now() + boost::chrono::milliseconds(50));
+            }) << "Failure while waiting the queue to stop";
+#endif
+        }
 
-    double delay_error_samples = std::abs(expected_delay_samples - gnss_synchro.Acq_delay_samples);
-    // float delay_error_chips = expected_delay_chips - static_cast<float>(gnss_synchro.Acq_delay_samples * BEIDOU_B1I_CODE_RATE_HZ / static_cast<float>(fs_in));
-    float delay_error_chips = static_cast<float>(delay_error_samples * BEIDOU_B1I_CODE_RATE_HZ / static_cast<float>(fs_in));
-    double doppler_error_hz = std::abs(expected_doppler_hz - gnss_synchro.Acq_doppler_hz);
-
-    std::cout << "The delay_error_samples is "             << delay_error_samples            << std::endl;
-    std::cout << "The delay_error_chips is "               << delay_error_chips              << std::endl;
-    std::cout << "The doppler_error_hz is "                << doppler_error_hz               << std::endl;
-
-    std::cout << "\n" << "The gnss_synchro.Acq_delay_samples is  " << gnss_synchro.Acq_delay_samples << std::endl;
-    std::cout << "The gnss_synchro.Acq_doppler_hz is  "    << gnss_synchro.Acq_doppler_hz    << "\n" << std::endl;
-
-    EXPECT_LE(doppler_error_hz,  500)   <<    "Doppler error exceeds the expected value: 500 Hz = 2*doppler_step";         
-    EXPECT_LT(delay_error_chips,  10)   <<    "Delay error exceeds the expected value: 1 chips";  
+    delete acquisition;
 }
+
+
+TEST_F(BeidouB1iPcpsAcquisitionGSoC2016Test, ValidationOfResultsProbabilities)
+{
+    config_2();
+    queue = gr::msg_queue::make(0);
+    top_block = gr::make_top_block("Acquisition test");
+    acquisition = new BeidouB1iPcpsAcquisition(config.get(), "Acquisition", 1, 1);
+    boost::shared_ptr<BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx> msg_rx = BeidouB1iPcpsAcquisitionGSoC2016Test_msg_rx_make(channel_internal_queue);
+
+    ASSERT_NO_THROW({
+        acquisition->set_channel(1);
+    }) << "Failure setting channel."
+       << std::endl;
+
+    ASSERT_NO_THROW({
+        acquisition->set_gnss_synchro(&gnss_synchro);
+    }) << "Failure setting gnss_synchro."
+       << std::endl;
+
+    ASSERT_NO_THROW({
+        acquisition->set_doppler_max(config->property("Acquisition.doppler_max", 10000));
+    }) << "Failure setting doppler_max."
+       << std::endl;
+
+    ASSERT_NO_THROW({
+        acquisition->set_doppler_step(config->property("Acquisition.doppler_step", 500));
+    }) << "Failure setting doppler_step."
+       << std::endl;
+
+    ASSERT_NO_THROW({
+        acquisition->set_threshold(config->property("Acquisition.threshold", 0.0));
+    }) << "Failure setting threshold."
+       << std::endl;
+
+    ASSERT_NO_THROW({
+        acquisition->connect(top_block);
+        top_block->msg_connect(acquisition->get_right_block(), pmt::mp("events"), msg_rx, pmt::mp("events"));
+    }) << "Failure connecting acquisition to the top_block."
+       << std::endl;
+
+    acquisition->init();
+
+    ASSERT_NO_THROW({
+        boost::shared_ptr<GenSignalSource> signal_source;
+        SignalGenerator* signal_generator = new SignalGenerator(config.get(), "SignalSource", 0, 1, queue);
+        FirFilter* filter = new FirFilter(config.get(), "InputFilter", 1, 1);
+        signal_source.reset(new GenSignalSource(signal_generator, filter, "SignalSource", queue));
+        signal_source->connect(top_block);
+        top_block->connect(signal_source->get_right_block(), 0, acquisition->get_left_block(), 0);
+    }) << "Failure connecting the blocks of acquisition test."
+       << std::endl;
+
+    std::cout << "Probability of false alarm (target) = " << 0.1 << std::endl;
+
+    // i = 0 --> satellite in acquisition is visible (prob of detection and prob of detection with wrong estimation)
+    // i = 1 --> satellite in acquisition is not visible (prob of false detection)
+    for (unsigned int i = 0; i < 2; i++)
+        {
+            init();
+
+            if (i == 0)
+                {
+                    gnss_synchro.PRN = 10;  // This satellite is visible
+                }
+            else if (i == 1)
+                {
+                    gnss_synchro.PRN = 1;  // This satellite is not visible
+                }
+
+            acquisition->set_local_code();
+
+            start_queue();
+
+            EXPECT_NO_THROW({
+                top_block->run();  // Start threads and wait
+            }) << "Failure running the top_block."
+               << std::endl;
+
+            if (i == 0)
+                {
+                    std::cout << "Estimated probability of detection = " << Pd << std::endl;
+                    std::cout << "Estimated probability of false alarm (satellite present) = " << Pfa_p << std::endl;
+                    std::cout << "Mean acq time = " << mean_acq_time_us << " microseconds." << std::endl;
+                }
+            else if (i == 1)
+                {
+                    std::cout << "Estimated probability of false alarm (satellite absent) = " << Pfa_a << std::endl;
+                    std::cout << "Mean acq time = " << mean_acq_time_us << " microseconds." << std::endl;
+                }
+#ifdef OLD_BOOST
+            ASSERT_NO_THROW({
+                ch_thread.timed_join(boost::posix_time::seconds(1));
+            }) << "Failure while waiting the queue to stop"
+               << std::endl;
+#endif
+#ifndef OLD_BOOST
+            ASSERT_NO_THROW({
+                ch_thread.try_join_until(boost::chrono::steady_clock::now() + boost::chrono::milliseconds(50));
+            }) << "Failure while waiting the queue to stop"
+               << std::endl;
+#endif
+        }
+
+    delete acquisition;
+}
+
