@@ -545,7 +545,8 @@ void GNSSFlowgraph::set_signals_list()
                                   configuration_->property("Channels_5X.count", 0) +
                                   configuration_->property("Channels_1G.count", 0) +
                                   configuration_->property("Channels_5X.count", 0) +
-                                  configuration_->property("Channels_L5.count", 0);
+                                  configuration_->property("Channels_L5.count", 0) +
+                                  configuration_->property("Channels_1I.count", 0);
 
     /*
      * Loop to create the list of GNSS Signals
@@ -564,6 +565,10 @@ void GNSSFlowgraph::set_signals_list()
 
     // Removing satellites sharing same frequency number(1 and 5, 2 and 6, 3 and 7, 4 and 6, 11 and 15, 12 and 16, 14 and 18, 17 and 21
     std::set<unsigned int> available_glonass_prn = {1, 2, 3, 4, 9, 10, 11, 12, 18, 19, 20, 21, 24};
+
+    std::set<unsigned int> available_beidou_prn = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+        11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27/*, 28,
+        29, 30, 31, 32, 33, 34, 35, 36*/};
 
     std::string sv_list = configuration_->property("Galileo.prns", std::string(""));
 
@@ -614,6 +619,22 @@ void GNSSFlowgraph::set_signals_list()
         }
 
     sv_list = configuration_->property("Glonass.prns", std::string(""));
+
+    if (sv_list.length() > 0)
+        {
+            // Reset the available prns:
+            std::set<unsigned int> tmp_set;
+            boost::tokenizer<> tok(sv_list);
+            std::transform(tok.begin(), tok.end(), std::inserter(tmp_set, tmp_set.begin()),
+                boost::lexical_cast<unsigned int, std::string>);
+
+            if (tmp_set.size() > 0)
+                {
+                    available_glonass_prn = tmp_set;
+                }
+        }
+
+    sv_list = configuration_->property("Beidou.prns", std::string(""));
 
     if (sv_list.length() > 0)
         {
@@ -733,6 +754,21 @@ void GNSSFlowgraph::set_signals_list()
                         std::string("1G")));
                 }
         }
+    if (configuration_->property("Channels_1I.count", 0) > 0)
+        {
+            /*
+         * Loop to create the list of Beidou B1i signals
+         */
+            for (available_gnss_prn_iter = available_glonass_prn.begin();
+                 available_gnss_prn_iter != available_glonass_prn.end();
+                 available_gnss_prn_iter++)
+                {
+                    available_GNSS_signals_.push_back(Gnss_Signal(
+                        Gnss_Satellite(std::string("Beidou"), *available_gnss_prn_iter),
+                        std::string("1I")));
+                }
+        }
+
     /*
      * Ordering the list of signals from configuration file
      */
@@ -747,6 +783,7 @@ void GNSSFlowgraph::set_signals_list()
             if ((gnss_signal.compare("1C") == 0) or (gnss_signal.compare("2S") == 0) or (gnss_signal.compare("L5") == 0)) gnss_system = "GPS";
             if ((gnss_signal.compare("1B") == 0) or (gnss_signal.compare("5X") == 0)) gnss_system = "Galileo";
             if ((gnss_signal.compare("1G") == 0) /*or (gnss_signal.compare("") == 0)*/) gnss_system = "Glonass";
+            if ((gnss_signal.compare("1I") == 0) /*or (gnss_signal.compare("") == 0)*/) gnss_system = "Beidou";
             unsigned int sat = configuration_->property("Channel" + boost::lexical_cast<std::string>(i) + ".satellite", 0);
             LOG(INFO) << "Channel " << i << " system " << gnss_system << ", signal " << gnss_signal << ", sat " << sat;
             if (sat == 0)  // 0 = not PRN in configuration file
