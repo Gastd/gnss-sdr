@@ -694,6 +694,7 @@ void GNSSFlowgraph::set_signals_list()
                         std::string("L5")));
                 }
         }
+
     if (configuration_->property("Channels_SBAS.count", 0) > 0)
         {
             /*
@@ -708,7 +709,6 @@ void GNSSFlowgraph::set_signals_list()
                         std::string("1C")));
                 }
         }
-
 
     if (configuration_->property("Channels_1B.count", 0) > 0)
         {
