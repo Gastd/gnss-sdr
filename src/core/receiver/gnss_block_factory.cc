@@ -1385,7 +1385,7 @@ std::unique_ptr<GNSSBlockInterface> GNSSBlockFactory::GetBlock(
                 out_streams));
             block = std::move(block_);
         }
-    else if (implementation.compare("BeiDou_B1I_PCPS_Acquisition") == 0)
+    else if (implementation.compare("BEIDOU_B1I_PCPS_Acquisition") == 0)
         {
             std::unique_ptr<AcquisitionInterface> block_(new BeidouB1iPcpsAcquisition(configuration.get(), role, in_streams,
                                                                                       out_streams));
@@ -1670,7 +1670,7 @@ std::unique_ptr<AcquisitionInterface> GNSSBlockFactory::GetAcqBlock(
                 out_streams));
             block = std::move(block_);
         }
-    else if (implementation.compare("BeiDou_B1I_PCPS_Acquisition") == 0)
+    else if (implementation.compare("BEIDOU_B1I_PCPS_Acquisition") == 0)
         {
             std::unique_ptr<AcquisitionInterface> block_(new BeidouB1iPcpsAcquisition(configuration.get(), role, in_streams,
                                                                                       out_streams));
