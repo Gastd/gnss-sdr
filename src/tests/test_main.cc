@@ -128,6 +128,7 @@ DECLARE_string(log_dir);
 #include "unit-tests/signal-processing-blocks/tracking/tracking_loop_filter_test.cc"
 #include "unit-tests/signal-processing-blocks/tracking/cpu_multicorrelator_test.cc"
 #include "unit-tests/signal-processing-blocks/tracking/cpu_multicorrelator_real_codes_test.cc"
+#include "unit-tests/signal-processing-blocks/tracking/beidou_b1i_dll_pll_tracking_gensource_gsoc2016_test.cc"
 
 #if CUDA_BLOCKS_TEST
 #include "unit-tests/signal-processing-blocks/tracking/gpu_multicorrelator_test.cc"
